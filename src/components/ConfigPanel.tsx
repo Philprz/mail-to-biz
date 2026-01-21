@@ -2,9 +2,11 @@ import { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { CheckCircle, Key, Mail, Shield, Loader2, XCircle, Wifi, WifiOff } from 'lucide-react';
+import { CheckCircle, Key, Mail, Shield, Loader2, XCircle, Wifi, WifiOff, Edit2, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 interface ConnectionTestResult {
   success: boolean;
@@ -24,9 +26,57 @@ interface ConnectionTestResult {
   };
 }
 
+interface CredentialConfig {
+  key: string;
+  label: string;
+  icon: typeof Key;
+  description: string;
+  placeholder: string;
+  type: 'text' | 'password';
+}
+
+const CREDENTIALS: CredentialConfig[] = [
+  {
+    key: 'MS_TENANT_ID',
+    label: 'Tenant ID',
+    icon: Key,
+    description: 'ID du tenant Azure AD (format GUID)',
+    placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    type: 'text',
+  },
+  {
+    key: 'MS_CLIENT_ID',
+    label: 'Client ID',
+    icon: Key,
+    description: 'ID de l\'application Azure AD',
+    placeholder: 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx',
+    type: 'text',
+  },
+  {
+    key: 'MS_CLIENT_SECRET',
+    label: 'Client Secret',
+    icon: Key,
+    description: 'Secret de l\'application Azure AD',
+    placeholder: 'Votre secret client...',
+    type: 'password',
+  },
+  {
+    key: 'MS_MAILBOX_ADDRESS',
+    label: 'Adresse email',
+    icon: Mail,
+    description: 'Adresse de la boîte mail à surveiller',
+    placeholder: 'quotes@entreprise.com',
+    type: 'text',
+  },
+];
+
 export function ConfigPanel() {
   const [isTesting, setIsTesting] = useState(false);
   const [testResult, setTestResult] = useState<ConnectionTestResult | null>(null);
+  const [editingCredential, setEditingCredential] = useState<string | null>(null);
+  const [credentialValues, setCredentialValues] = useState<Record<string, string>>({});
+  const [showSecrets, setShowSecrets] = useState<Record<string, boolean>>({});
+  const [individualTests, setIndividualTests] = useState<Record<string, 'pending' | 'testing' | 'success' | 'error'>>({});
 
   const handleTestConnection = async () => {
     setIsTesting(true);
@@ -55,6 +105,14 @@ export function ConfigPanel() {
 
       setTestResult(data as ConnectionTestResult);
       
+      // Update individual test states based on result
+      setIndividualTests({
+        MS_TENANT_ID: data.details.tenantId ? 'success' : 'error',
+        MS_CLIENT_ID: data.details.clientId ? 'success' : 'error',
+        MS_CLIENT_SECRET: data.details.clientSecret ? 'success' : 'error',
+        MS_MAILBOX_ADDRESS: data.details.mailboxAddress ? 'success' : 'error',
+      });
+      
       if (data.success) {
         toast.success(`Connexion réussie à ${data.mailboxInfo?.mail}`);
       } else {
@@ -67,6 +125,47 @@ export function ConfigPanel() {
       setIsTesting(false);
     }
   };
+
+  const handleEditCredential = (key: string) => {
+    setEditingCredential(key);
+    setCredentialValues(prev => ({ ...prev, [key]: '' }));
+  };
+
+  const handleCancelEdit = () => {
+    setEditingCredential(null);
+  };
+
+  const toggleShowSecret = (key: string) => {
+    setShowSecrets(prev => ({ ...prev, [key]: !prev[key] }));
+  };
+
+  const getCredentialStatus = (key: string) => {
+    if (individualTests[key] === 'success') return 'success';
+    if (individualTests[key] === 'error') return 'error';
+    if (testResult?.details) {
+      const keyMap: Record<string, keyof ConnectionTestResult['details']> = {
+        MS_TENANT_ID: 'tenantId',
+        MS_CLIENT_ID: 'clientId',
+        MS_CLIENT_SECRET: 'clientSecret',
+        MS_MAILBOX_ADDRESS: 'mailboxAddress',
+      };
+      return testResult.details[keyMap[key]] ? 'success' : 'error';
+    }
+    return 'pending';
+  };
+
+  const renderCredentialStatus = (key: string) => {
+    const status = getCredentialStatus(key);
+    
+    if (status === 'success') {
+      return <CheckCircle className="w-4 h-4 text-success" />;
+    }
+    if (status === 'error') {
+      return <XCircle className="w-4 h-4 text-destructive" />;
+    }
+    return <Badge variant="outline" className="text-xs">Non testé</Badge>;
+  };
+
   return (
     <div className="max-w-2xl space-y-6 animate-fade-in">
       <div>
@@ -88,39 +187,93 @@ export function ConfigPanel() {
             </Badge>
           </div>
           <CardDescription>
-            Les secrets sont stockés de manière sécurisée dans Lovable Cloud
+            Cliquez sur Modifier pour changer une valeur. Les secrets sont stockés de manière sécurisée.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4">
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-3">
-                <Key className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">MS_TENANT_ID</span>
-              </div>
-              <Badge variant="outline">••••••••</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-3">
-                <Key className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">MS_CLIENT_ID</span>
-              </div>
-              <Badge variant="outline">••••••••</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-3">
-                <Key className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">MS_CLIENT_SECRET</span>
-              </div>
-              <Badge variant="outline">••••••••</Badge>
-            </div>
-            <div className="flex items-center justify-between p-3 rounded-lg bg-muted">
-              <div className="flex items-center gap-3">
-                <Mail className="w-4 h-4 text-muted-foreground" />
-                <span className="text-sm font-medium">MS_MAILBOX_ADDRESS</span>
-              </div>
-              <Badge variant="outline">••••••••</Badge>
-            </div>
+            {CREDENTIALS.map((cred) => {
+              const Icon = cred.icon;
+              const isEditing = editingCredential === cred.key;
+              const isSecret = cred.type === 'password';
+              const showSecret = showSecrets[cred.key];
+
+              return (
+                <div key={cred.key} className="p-4 rounded-lg bg-muted border border-border">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-3">
+                      <Icon className="w-4 h-4 text-muted-foreground" />
+                      <div>
+                        <span className="text-sm font-medium">{cred.label}</span>
+                        <p className="text-xs text-muted-foreground">{cred.description}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {renderCredentialStatus(cred.key)}
+                      {!isEditing && (
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => handleEditCredential(cred.key)}
+                        >
+                          <Edit2 className="w-3 h-3 mr-1" />
+                          Modifier
+                        </Button>
+                      )}
+                    </div>
+                  </div>
+
+                  {isEditing ? (
+                    <div className="mt-3 space-y-3">
+                      <div className="relative">
+                        <Label htmlFor={cred.key} className="sr-only">{cred.label}</Label>
+                        <Input
+                          id={cred.key}
+                          type={isSecret && !showSecret ? 'password' : 'text'}
+                          placeholder={cred.placeholder}
+                          value={credentialValues[cred.key] || ''}
+                          onChange={(e) => setCredentialValues(prev => ({ ...prev, [cred.key]: e.target.value }))}
+                          className="pr-10"
+                        />
+                        {isSecret && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-7 w-7 p-0"
+                            onClick={() => toggleShowSecret(cred.key)}
+                          >
+                            {showSecret ? (
+                              <EyeOff className="w-4 h-4" />
+                            ) : (
+                              <Eye className="w-4 h-4" />
+                            )}
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex gap-2">
+                        <Button 
+                          size="sm" 
+                          variant="outline"
+                          onClick={handleCancelEdit}
+                        >
+                          Annuler
+                        </Button>
+                        <p className="text-xs text-muted-foreground flex items-center">
+                          Pour modifier ce secret, utilisez le panneau de configuration Lovable Cloud
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-2">
+                      <Badge variant="outline" className="font-mono text-xs">
+                        ••••••••••••
+                      </Badge>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
