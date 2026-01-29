@@ -3,11 +3,12 @@ import { AppHeader } from '@/components/AppHeader';
 import { Sidebar } from '@/components/Sidebar';
 import { EmailList } from '@/components/EmailList';
 import { QuoteValidation } from '@/components/QuoteValidation';
+import { QuoteSummary } from '@/components/QuoteSummary';
 import { ConfigPanel } from '@/components/ConfigPanel';
 import { getMockEmails, processEmails } from '@/hooks/useMockData';
 import { ProcessedEmail } from '@/types/email';
 
-type View = 'inbox' | 'quotes' | 'config';
+type View = 'inbox' | 'quotes' | 'config' | 'summary';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('inbox');
@@ -21,7 +22,7 @@ const Index = () => {
 
   const handleSelectQuote = (quote: ProcessedEmail) => {
     setSelectedQuote(quote);
-    setCurrentView('quotes');
+    setCurrentView('summary');
   };
 
   const handleValidate = (updatedDoc: ProcessedEmail) => {
@@ -29,6 +30,17 @@ const Index = () => {
       prev.map(e => e.email.id === updatedDoc.email.id ? updatedDoc : e)
     );
     setSelectedQuote(null);
+  };
+
+  const handleSummaryValidate = () => {
+    // Demo action - just go back to inbox
+    setSelectedQuote(null);
+    setCurrentView('inbox');
+  };
+
+  const handleSummaryBack = () => {
+    setSelectedQuote(null);
+    setCurrentView('inbox');
   };
 
   return (
@@ -59,6 +71,14 @@ const Index = () => {
               selectedQuote={selectedQuote}
               onSelectQuote={setSelectedQuote}
               onValidate={handleValidate}
+            />
+          )}
+
+          {currentView === 'summary' && selectedQuote && (
+            <QuoteSummary
+              quote={selectedQuote}
+              onValidate={handleSummaryValidate}
+              onBack={handleSummaryBack}
             />
           )}
         </main>

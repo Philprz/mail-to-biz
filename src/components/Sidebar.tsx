@@ -1,20 +1,21 @@
 import { Inbox, FileCheck, Settings, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type View = 'inbox' | 'quotes' | 'config';
+type View = 'inbox' | 'quotes' | 'config' | 'summary';
 
 interface SidebarProps {
   currentView: View;
-  onViewChange: (view: View) => void;
+  onViewChange: (view: 'inbox' | 'quotes' | 'config') => void;
   quotesCount: number;
   pendingCount: number;
 }
 
 export function Sidebar({ currentView, onViewChange, quotesCount, pendingCount }: SidebarProps) {
-  const navItems = [
-    { id: 'inbox' as View, label: 'Boîte de réception', icon: Inbox },
-    { id: 'quotes' as View, label: 'Demandes de devis', icon: FileText, badge: pendingCount > 0 ? pendingCount : undefined },
-    { id: 'config' as View, label: 'Configuration', icon: Settings },
+  type NavView = 'inbox' | 'quotes' | 'config';
+  const navItems: { id: NavView; label: string; icon: typeof Inbox; badge?: number }[] = [
+    { id: 'inbox', label: 'Boîte de réception', icon: Inbox },
+    { id: 'quotes', label: 'Demandes de devis', icon: FileText, badge: pendingCount > 0 ? pendingCount : undefined },
+    { id: 'config', label: 'Configuration', icon: Settings },
   ];
 
   return (
