@@ -5,13 +5,14 @@ import { EmailList } from '@/components/EmailList';
 import { QuoteValidation } from '@/components/QuoteValidation';
 import { QuoteSummary } from '@/components/QuoteSummary';
 import { ConfigPanel } from '@/components/ConfigPanel';
+import { AccountSelection } from '@/components/AccountSelection';
 import { getMockEmails, processEmails } from '@/hooks/useMockData';
 import { ProcessedEmail } from '@/types/email';
 
-type View = 'inbox' | 'quotes' | 'config' | 'summary';
+type View = 'account-selection' | 'inbox' | 'quotes' | 'config' | 'summary';
 
 const Index = () => {
-  const [currentView, setCurrentView] = useState<View>('inbox');
+  const [currentView, setCurrentView] = useState<View>('account-selection');
   const [selectedQuote, setSelectedQuote] = useState<ProcessedEmail | null>(null);
   const [processedEmails, setProcessedEmails] = useState<ProcessedEmail[]>(() => 
     processEmails(getMockEmails())
@@ -42,6 +43,15 @@ const Index = () => {
     setSelectedQuote(null);
     setCurrentView('inbox');
   };
+
+  const handleAccountSelect = () => {
+    setCurrentView('inbox');
+  };
+
+  // Show account selection as first screen
+  if (currentView === 'account-selection') {
+    return <AccountSelection onSelectAccount={handleAccountSelect} />;
+  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
