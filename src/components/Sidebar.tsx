@@ -1,7 +1,7 @@
 import { Inbox, FileCheck, Settings, FileText } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-type View = 'inbox' | 'quotes' | 'config' | 'summary';
+type View = 'account-selection' | 'inbox' | 'quotes' | 'config' | 'summary';
 
 interface SidebarProps {
   currentView: View;
