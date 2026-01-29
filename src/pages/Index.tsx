@@ -5,11 +5,12 @@ import { EmailList } from '@/components/EmailList';
 import { QuoteValidation } from '@/components/QuoteValidation';
 import { QuoteSummary } from '@/components/QuoteSummary';
 import { ConfigPanel } from '@/components/ConfigPanel';
+import { ConnectorsPanel } from '@/components/ConnectorsPanel';
 import { AccountSelection } from '@/components/AccountSelection';
 import { getMockEmails, processEmails } from '@/hooks/useMockData';
 import { ProcessedEmail } from '@/types/email';
 
-type View = 'account-selection' | 'inbox' | 'quotes' | 'config' | 'summary';
+type View = 'account-selection' | 'inbox' | 'quotes' | 'config' | 'connectors' | 'summary';
 
 const Index = () => {
   const [currentView, setCurrentView] = useState<View>('account-selection');
@@ -67,6 +68,8 @@ const Index = () => {
         
         <main className="flex-1 p-6 overflow-auto">
           {currentView === 'config' && <ConfigPanel />}
+          
+          {currentView === 'connectors' && <ConnectorsPanel />}
           
           {currentView === 'inbox' && (
             <EmailList 
