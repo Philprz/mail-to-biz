@@ -25,6 +25,15 @@ export interface SupplierExtractionResult {
   extraction_notes?: string;
 }
 
+// Single file extraction result (user-selected file)
+export interface SingleFileExtractionResult {
+  product_found_in_sap: false;
+  supplier_file: SupplierFileInfo;
+  extracted_product_data: ExtractedProductData | null;
+  missing_fields: string[];
+  extraction_notes?: string;
+}
+
 // Patterns for extracting supplier data
 const PATTERNS = {
   // Reference patterns: REF-XXX, REF:XXX, Référence: XXX, Code: XXX
@@ -290,6 +299,83 @@ export function extractFromSupplierFiles(
   return {
     product_found_in_sap: false,
     supplier_files_used: supplierFiles,
+    extracted_product_data: extractedData,
+    missing_fields: missingFields,
+  };
+}
+
+// Extract from a single user-selected file
+export function extractFromSingleFile(
+  attachment: EmailAttachment
+): SingleFileExtractionResult {
+  const isPdf = attachment.contentType === 'application/pdf' || 
+                attachment.name.toLowerCase().endsWith('.pdf');
+  const isExcel = attachment.name.toLowerCase().endsWith('.xlsx') || 
+                  attachment.name.toLowerCase().endsWith('.xls') ||
+                  attachment.contentType.includes('excel') ||
+                  attachment.contentType.includes('spreadsheet');
+  
+  if (!isPdf && !isExcel) {
+    return {
+      product_found_in_sap: false,
+      supplier_file: {
+        filename: attachment.name,
+        type: isPdf ? 'pdf' : 'excel',
+      },
+      extracted_product_data: null,
+      missing_fields: [
+        'supplier_reference',
+        'designation',
+        'unit_price',
+        'currency',
+        'delivery_time',
+        'supplier_name',
+      ],
+      extraction_notes: 'Format de fichier non supporté. Seuls les fichiers PDF et Excel sont acceptés.',
+    };
+  }
+  
+  const fileType: 'pdf' | 'excel' = isPdf ? 'pdf' : 'excel';
+  let textContent = '';
+  
+  if (isPdf) {
+    const parsed = getMockPdfContent(attachment.name);
+    if (parsed.parseSuccess) {
+      textContent = parsed.textContent;
+    }
+  } else if (isExcel) {
+    textContent = getMockExcelContent(attachment.name);
+  }
+  
+  if (!textContent) {
+    return {
+      product_found_in_sap: false,
+      supplier_file: {
+        filename: attachment.name,
+        type: fileType,
+      },
+      extracted_product_data: null,
+      missing_fields: [
+        'supplier_reference',
+        'designation',
+        'unit_price',
+        'currency',
+        'delivery_time',
+        'supplier_name',
+      ],
+      extraction_notes: 'Impossible de lire le contenu du fichier.',
+    };
+  }
+  
+  const extractedData = extractProductDataFromText(textContent);
+  const missingFields = getMissingFields(extractedData);
+  
+  return {
+    product_found_in_sap: false,
+    supplier_file: {
+      filename: attachment.name,
+      type: fileType,
+    },
     extracted_product_data: extractedData,
     missing_fields: missingFields,
   };
